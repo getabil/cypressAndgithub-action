@@ -15,22 +15,144 @@
 #         with:
 #           build: npm run build
 #           start: npm start
-name: Cypress Tests using Cypress Docker Image
 
-on: push
+# name: Cypress Tests and Create PR
+
+# on:
+#   push:
+#     branches:
+#       - master
+
+# jobs:
+#   cypress-run:
+#     runs-on: ubuntu-22.04
+
+#     steps:
+#       # Step 1: Check out the repository
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       # Step 2: Set up Node.js environment and cache dependencies
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '16'  # Specify your Node.js version
+
+#       - name: Cache node modules
+#         uses: actions/cache@v3
+#         with:
+#           path: node_modules
+#           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+#           restore-keys: |
+#             ${{ runner.os }}-node-modules-
+
+#       # Step 3: Install NPM dependencies
+#       - name: Install dependencies
+#         run: npm ci
+
+#       # Step 4: Build the application
+#       - name: Build application
+#         run: npm run build
+
+#       # Step 5: Start the application in the background
+#       - name: Start application
+#         run: npm start &
+#         env:
+#           CI: true
+
+#       # Step 6: Run Cypress tests
+#       - name: Run Cypress tests
+#         uses: cypress-io/github-action@v6
+#         with:
+#           wait-on: 'http://localhost:3000'  # Replace with your app's URL
+#           start: npm start
+#           config-file: cypress.json
+
+#       # Step 7: Configure Git (Ensure that GitHub Actions can push changes)
+#       - name: Set up Git for push
+#         run: |
+#           git config --global user.name "GitHub Actions"
+#           git config --global user.email "actions@github.com"
+
+#       # Step 8: Push changes to the master branch (optional, depending on your changes)
+#       - name: Push to master
+#         run: |
+#           git checkout master
+#           git add .
+#           git commit -m "Automated changes after Cypress tests"
+#           git push origin master
+
+#       # Step 9: Install GitHub CLI to create a pull request
+#       - name: Install GitHub CLI
+#         uses: actions/setup-gh@v1
+
+#       # Step 10: Create a pull request from master to main
+#       - name: Create pull request
+#         run: |
+#           gh pr create --base main --head master --title "Automated PR from master to main" --body "This PR was auto-generated after Cypress tests passed."
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# name: Cypress Tests using Cypress Docker Image
+
+# on: push
+
+# jobs:
+#   cypress-run:
+#     runs-on: ubuntu-22.04
+#     container:
+#       image: cypress/browsers:node-20.14.0-chrome-126.0.6478.114-1-ff-127.0.1-edge-126.0.2592.61-1
+#       options: --user 1001
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#       - name: Cypress run
+#         uses: cypress-io/github-action@v6
+#         with:
+#           build: npm run build
+#           start: npm start
+#           browser: chrome
+
+name: Cypress Visual Regression Tests with Chromatic
+
+on:
+  push:
+    branches:
+      - master  # Adjust according to your workflow
 
 jobs:
-  cypress-run:
-    runs-on: ubuntu-22.04
-    container:
-      image: cypress/browsers:node-20.14.0-chrome-126.0.6478.114-1-ff-127.0.1-edge-126.0.2592.61-1
-      options: --user 1001
+  cypress-visual-regression:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Cypress run
-        uses: cypress-io/github-action@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          build: npm run build
-          start: npm start
-          browser: chrome
+          node-version: '14'  # Use your desired Node.js version
+
+      - name: Install Dependencies
+        run: npm install  # Install your project dependencies
+
+      - name: Build Project
+        run: npm run build  # Build your project (adjust as needed)
+
+      - name: Start Application
+        run: npm start &  # Start your application in the background
+        env:
+          CI: true  # Set CI environment variable for testing
+
+      - name: Wait for Application
+        run: |
+          sleep 15  # Wait for the application to start (adjust if necessary)
+          curl -f http://localhost:3000  # Check if the app is running (adjust URL)
+
+      - name: Run Cypress Visual Tests
+        run: |
+          npx cypress run --spec "cypress/integration/**/*.spec.js" --headed --browser chrome  # Adjust the spec path
+          
+      - name: Deploy Visual Tests to Chromatic
+        run: |
+          npx chromatic --project-token='chpt_b3edbe07210d9fb'
